@@ -1,4 +1,4 @@
-function DSSS_Trans = myDSSSTx(dataInput, phi_DSSS)
+function DSSS_Trans = myDSSSTx(dataInput, phi_DSSS, randomYN)
 %MYDSSSTX Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -7,7 +7,11 @@ dataSequence = repmat(dataInput, constants.PNlength, 1);
 dataSequence = reshape(dataSequence, 1, []); 
 
 % make the pn code sequence and make it the length for adding 
-codeSequence = randi([0 1], constants.PNlength, 1)'; 
+if (randomYN == 1)
+    codeSequence = randi([0 1], constants.PNlength, 1)'; 
+else 
+    codeSequence = [1 0 1 0 0 1 1 0 1 0]; 
+end 
 codeSequence = repmat(codeSequence, 1, length(dataSequence)./constants.PNlength); 
 
 % add the data and code via XOR 

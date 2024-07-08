@@ -7,13 +7,14 @@ clear; clc; close all;
 % such: constants.thingToBeCalled 
 %% Setup and Parameters 
 t = 0:1/constants.fs:1-1/constants.fs; 
-phi_BPSK = sin(2*pi*constants.fc*t); 
-phi_DSSS = sin(2*pi*constants.fc*t*constants.PNlength); 
+phi_BPSK = sin(2*pi*constants.fcBPSK*t); 
+phi_DSSS = sin(2*pi*constants.fc*t); % fc is the carrier freq 
 
 
 %% Transmitter 
 dataInput = [1 0 0 1 1 0] % this is the data bits to be transmitted 
- 
+% dataInput = randi([0 1], constants.dataLength, 1)'; 
+
 % make the bits into size for adding the PN sequence 
 dataSequence = repmat(dataInput, constants.PNlength, 1); 
 dataSequence = reshape(dataSequence, 1, []); 
@@ -51,12 +52,13 @@ dataDSSS = reshape(dataDSSS, 1, []);
     y_DSSS = y_DSSS + 0*randn(1,length(t)); % gaussian noise to add to signals 
     
 % add delay 
-delay = 0.5; % seconds % delay before the receiver gets first info 
+delay = 0.1; % seconds % delay before the receiver gets first info 
 r_DSSS = zeros(1, length(y_DSSS) + length(y_DSSS).*delay); % r_DSSS is the received signal 
 r_DSSS(1,length(y_DSSS)*delay:end-1) = y_DSSS; 
 
 % add AWGN 
-    r_DSSS = r_DSSS + 10*randn(1,length(r_DSSS)); % gaussian noise to add to signals 
+    noise = 5*randn(1,length(r_DSSS)); 
+    r_DSSS = r_DSSS + noise; % gaussian noise to add to signals 
 
 
 %% Acquisition 
@@ -64,11 +66,14 @@ r_DSSS(1,length(y_DSSS)*delay:end-1) = y_DSSS;
 codeSequenceFull = repmat(codeSequence, constants.fs/length(codeSequence), 1); 
 codeSequenceFull = reshape(codeSequenceFull, 1, []); 
 
-% correlate with received signal 
 
 
 
 
+%ah = reshape(z_DSSS, [], length(KSequence)); % KSequence is the chirp
+% % sequence and this uses the correlation over the chirp, not the bit
+% % period 
+%phi_Vert = reshape(phi_DSSS, [], length(KSequence)); 
 
 %% Receiver 
 % make the code sequence full length and change the zeros to -1 
@@ -106,19 +111,23 @@ SS_fourier = fft(y_DSSS);
 % take fourier of despread example? 
 DeS_fourier = fft(z_DSSS); 
 
-figure(); 
-plot(1:length(US_fourier), abs(US_fourier)); hold on; 
-plot(1:length(SS_fourier), abs(SS_fourier)); 
-plot(1:length(DeS_fourier), abs(DeS_fourier)); hold off; 
-
-
-
+% of noise 
+n_fourier = fft(noise); 
 
 
 
 %% Plotting 
 doPlot = 0; 
 if (doPlot == 1)
+
+figure(); 
+plot(1:length(US_fourier), abs(US_fourier)); hold on; 
+plot(1:length(SS_fourier), abs(SS_fourier)); 
+plot(1:length(DeS_fourier), abs(DeS_fourier)); 
+plot(1:length(n_fourier), abs(n_fourier)); hold off; 
+
+figure(); plot(1:length(n_fourier), abs(n_fourier)); 
+
 figure(); 
     plot(t,phi_BPSK); hold on; 
     plot(t,phi_DSSS); hold off; 
