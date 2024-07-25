@@ -7,30 +7,15 @@ clear; clc; close all;
 % such: constants.thingToBeCalled 
 %% Setup and Parameters 
 t = 0:1/constants.fs:1-1/constants.fs; 
-
 phi_BPSK = sin(2*pi*constants.fcBPSK*t); 
-
-% add impairments to transmitted carrier 
-    %freqOffset = 100; % Hz % offset from orignal carrier freq 
-    deltaF = 1 %- 0.0001*randn(1,length(t)); % unit difference in frequency of the transmitted carrier 
-    %theta = 0.05*randn(1,length(t)); % time varying phase 
-%     theta = zeros(1,length(t)); 
-%     theta(1,length(t)./2) = pi; 
-    theta = 0; 
-phi_DSSS = sin(2*pi*constants.fc.*(deltaF).*t + theta); 
-phi_DSSS_clean = sin(2*pi*constants.fc.*t); 
-
-% this is a carrier that will get faster halfway thru 
-phi_DSSS_tooFast = phi_DSSS_clean; 
-phi_DSSS_tooFast(length(phi_DSSS)./2:end) = sin(2*pi*constants.fc.*1*t(length(phi_DSSS)./2:end)); 
-
+phi_DSSS = sin(2*pi*constants.fc*t); 
 
 
 dataInput = [1 0 0 1 1 0] % this is the data bits to be transmitted 
 
 %% Transmitter 
 % Use function and fill in the other's using output struct   
-DSSS_Trans = myDSSSTx(dataInput, phi_DSSS_tooFast, 0); % the last argument is 1 for 
+DSSS_Trans = myDSSSTx(dataInput, phi_DSSS, 0); % the last argument is 1 for 
                                                % random sequence of length
                                                % PNlength and 0 for not 
     y_DSSS = DSSS_Trans.y_DSSS; 
@@ -87,7 +72,6 @@ Tc = 1/(constants.chipRate); % period of chip
 
 % received signal mult by code sequence for lambda # of chips 
 n = 0; 
-    lol = 0; 
 step = 0.5*(Tc*constants.fs); % make sure this is an integer 
 for i = 1:step:(length(r_base_filtered) - lam*Tc*constants.fs)
 n = n + 1; 
@@ -103,16 +87,8 @@ n = n + 1;
         correlSave(1,n) = correl_r_c; 
         offsetFoundSave(1,n) = i; 
     if (correl_r_c >  4000) 
-        lol = lol + 1; 
-        sayWhat(1,lol) = 1; 
-        lam =  45; % increase number of chips to verify acquisition 
-        r_c = r_base_filtered(i:i + lam*Tc*constants.fs - 1).*codeSequenceFull(1:lam*Tc*constants.fs); 
-        correl_r_c = (trapz(r_c)).^2; 
-        if (correl_r_c >  4000) 
-            hi = 1; 
-            offsetFoundFirst = i; 
-            break
-        end 
+        offsetFoundFirst = i; 
+        break
     end 
     
 end 
@@ -130,21 +106,6 @@ r_DSSS_Acquired = zeros(1,length(codeSequenceFull));
 r_DSSS_Acquired = r_base_filtered(1,offsetFoundFirst:end); 
 
 %% Synchronization - Tracking 
-Tau = offsetFoundFirst; 
-earlyPN = zeros(size(r_DSSS)); 
-latePN = earlyPN; 
-%earlyPN(1, (Tau - step):length(codeSequenceFull)) = codeSequenceFull; 
-%latePN(1, (Tau + step):length(codeSequenceFull)) = codeSequenceFull; 
-
-for i = 1:step:(length(r_base_filtered))
-    %r_c_early = 
-
-
-
-
-end 
-
-
 
 
 %% Demodulation 
@@ -161,13 +122,6 @@ receive_correl_Ex = r_DSSS_Acquired.*codeSequenceFull;
 
 
 %% Plotting 
-% figure(); 
-%     plot(t,phi_DSSS_clean); hold on; 
-%     plot(t,phi_DSSS_tooFast); hold off; 
-% 
-
-
-
 figure(); % this will require the corresponding spectra to be uncommented as well 
 subplot(3,2,1); 
     plot((0:length(received_fourier)-1)*constants.fs/(length(received_fourier)-1), abs(received_fourier)); 
@@ -194,20 +148,20 @@ subplot(3,2,6);
 % figure(); 
 %     plot(t, y_DSSS); hold on; 
 %     plot(t,phi_DSSS); hold off; 
-    
+%     
 
-% figure(); 
-% subplot(1,2,1); 
-%     plot(t_local, r_DSSS); 
-%     xticks(0:0.1:1.1); 
-%     xlabel('Time (s)'); 
-%     title('Received Signal'); 
-% subplot(1,2,2); 
-%     plot(t_local,r_DSSS); 
-%     title('Received Signal Zoomed In'); 
-%     xlim([delay-0.01 delay+0.01]); 
-%     ylim([-1.5 1.5]); 
-% 
+figure(); 
+subplot(1,2,1); 
+    plot(t_local, r_DSSS); 
+    xticks(0:0.1:1.1); 
+    xlabel('Time (s)'); 
+    title('Received Signal'); 
+subplot(1,2,2); 
+    plot(t_local,r_DSSS); 
+    title('Received Signal Zoomed In'); 
+    xlim([delay-0.01 delay+0.01]); 
+    ylim([-1.5 1.5]); 
+
 
 figure(); 
     plot(t_local, r_base_filtered+0.5); 
